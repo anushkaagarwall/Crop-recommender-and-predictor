@@ -1,0 +1,71 @@
+import numpy as np
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import LabelEncoder, MultiLabelBinarizer, StandardScaler
+from sklearn.pipeline import Pipeline
+
+soil_types = ['Sandy', 'Loamy', 'Clay', 'Silty', 'Peaty', 'Chalky', 'Red', 'Black']
+regions = ['North', 'South', 'East', 'West', 'Central']
+crops = ['Wheat', 'Rice', 'Maize', 'Soybean', 'Barley', 'Gram', 'Cotton', 'Sugarcane', 'Pulses', 'Groundnut']
+
+n_samples = 500
+soil_data = np.random.choice(soil_types, size=n_samples)
+region_data = np.random.choice(regions, size=n_samples)
+pH = np.random.uniform(5.5, 8.5, size=n_samples)
+moisture = np.random.uniform(10, 50, size=n_samples)
+nitrogen = np.random.uniform(0, 100, size=n_samples)
+phosphorus = np.random.uniform(0, 60, size=n_samples)
+potassium = np.random.uniform(0, 100, size=n_samples)
+
+def assign_crops(soil, region):
+    return list(np.random.choice(['Wheat', 'Rice', 'Maize'], size=2, replace=False))
+
+crop_assignments = [assign_crops(soil, region) for soil, region in zip(soil_data, region_data)]
+
+df = pd.DataFrame({
+    'SoilType': soil_data,
+    'Region': region_data,
+    'pH': pH,
+    'Moisture': moisture,
+    'Nitrogen': nitrogen,
+    'Phosphorus': phosphorus,
+    'Potassium': potassium,
+    'Crops': crop_assignments,
+})
+
+le_soil = LabelEncoder()
+le_region = LabelEncoder()
+df['SoilType_encoded'] = le_soil.fit_transform(df['SoilType'])
+df['Region_encoded'] = le_region.fit_transform(df['Region'])
+
+mlb = MultiLabelBinarizer()
+y = mlb.fit_transform(df['Crops'])
+
+feature_cols = ['SoilType_encoded', 'Region_encoded', 'pH', 'Moisture', 'Nitrogen', 'Phosphorus', 'Potassium']
+X = df[feature_cols]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+pipeline = Pipeline([
+    ('scaler', StandardScaler()),
+    ('clf', MultiOutputClassifier(RandomForestClassifier(n_estimators=100, random_state=42)))
+])
+
+pipeline.fit(X_train, y_train)
+
+def predict_crops_and_prices(soil_type, region, pH, moisture, nitrogen, phosphorus, potassium):
+    soil_encoded = le_soil.transform([soil_type])[0]
+    region_encoded = le_region.transform([region])[0]
+    features = np.array([[soil_encoded, region_encoded, pH, moisture, nitrogen, phosphorus, potassium]])
+    
+    crops_pred = pipeline.predict(features)
+    recommended_crops = mlb.inverse_transform(crops_pred)
+    
+    recommended_crops = [crop for sublist in recommended_crops for crop in sublist]
+    prices = assign_prices(recommended_crops)
+    return recommended_crops, prices
+
+def assign_prices(crops):
+    return {crop: round(np.random.uniform(10, 50), 2) for crop in crops}
