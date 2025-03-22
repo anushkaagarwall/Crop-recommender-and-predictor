@@ -1,0 +1,40 @@
+import tkinter as tk
+from tkinter import messagebox, ttk
+from backend import predict_crops_and_prices
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+
+window = tk.Tk()
+window.title("🌱 Crop Recommendation System 🌱")
+window.geometry("800x600")
+
+canvas = tk.Canvas(window)
+scroll_y = tk.Scrollbar(window, orient="vertical", command=canvas.yview)
+
+frame = tk.Frame(canvas, bg="#ffffff", padx=20, pady=20)
+frame_id = canvas.create_window((0, 0), window=frame, anchor="nw")
+
+canvas.configure(yscrollcommand=scroll_y.set)
+canvas.pack(side="left", fill="both", expand=True)
+scroll_y.pack(side="right", fill="y")
+
+def update_scroll_region(event):
+    canvas.configure(scrollregion=canvas.bbox("all"))
+
+frame.bind("<Configure>", update_scroll_region)
+
+soil_types = ['Sandy', 'Loamy', 'Clay', 'Silty', 'Peaty', 'Chalky', 'Red', 'Black']
+regions = ['North', 'South', 'East', 'West', 'Central']
+
+soil_var = tk.StringVar()
+region_var = tk.StringVar()
+
+soil_dropdown = ttk.Combobox(frame, textvariable=soil_var, values=soil_types, state="readonly", font=("Arial", 12))
+region_dropdown = ttk.Combobox(frame, textvariable=region_var, values=regions, state="readonly", font=("Arial", 12))
+soil_dropdown.current(0)
+region_dropdown.current(0)
+
+soil_dropdown.pack(pady=5)
+region_dropdown.pack(pady=5)
+
+def create_label_
